@@ -69,10 +69,9 @@ export default function ({ children, onChange }) {
 
             // Fetch data for internal facet components.
             facetWidgets.forEach((f, id) => {
-              const fields = f.configuration.fields;
-              const size = f.configuration.size;
-              const filterValue = f.configuration.filterValue;
-              const filterValueModifier = f.configuration.filterValueModifier;
+              const { configuration } = f;
+              const fields = configuration.fields;
+              const aggFromField = configuration.aggFromField;
 
               // Get the aggs (elasticsearch queries) from fields
               // Dirtiest part, because we build a raw query from various params
@@ -83,20 +82,10 @@ export default function ({ children, onChange }) {
                   q.delete(id);
                   return q;
                 }
-                // Transform a single field to agg query
-                function aggFromField(field) {
-                  const t = { field, order: { _count: "desc" }, size };
-                  if (filterValue) {
-                    t.include = !filterValueModifier
-                      ? `.*${filterValue}.*`
-                      : filterValueModifier(filterValue);
-                  }
-                  return { [field]: { terms: t } };
-                }
                 // Actually build the query from fields
                 let result = {};
                 fields.forEach((f) => {
-                  result = { ...result, ...aggFromField(f) };
+                  result = { ...result, ...aggFromField(f, configuration) };
                 });
                 return { query: queryFrom(withoutOwnQueries()), size: 0, aggs: result };
               }
@@ -118,7 +107,7 @@ export default function ({ children, onChange }) {
                           : i.doc_count,
                       });
                     });
-                  return [...map.values()].sort((x, y) => y.doc_count - x.doc_count).slice(0, size);
+                  return [...map.values()].sort((x, y) => y.doc_count - x.doc_count).slice(0, map.length);
                 },
                 total: (result) => result.hits.total,
                 id: id,

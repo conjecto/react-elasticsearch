@@ -27,6 +27,17 @@ export default function({
 
   // Update widgets properties on state change.
   useEffect(() => {
+    const aggFromField = (field, configuration) => {
+      const { size, filterValue } = configuration;
+      const t = { field, order: { _count: "desc" }, size };
+      if (filterValue) {
+        t.include = !filterValueModifier
+          ? `.*${filterValue}.*`
+          : filterValueModifier(filterValue);
+      }
+      return { [field]: { terms: t } }
+    }
+
     dispatch({
       type: "setWidget",
       key: id,
@@ -36,7 +47,7 @@ export default function({
       wantResults: false,
       query: { bool: { should: toTermQueries(fields, value) } },
       value,
-      configuration: { size, filterValue, fields, filterValueModifier },
+      configuration: { size, filterValue, fields, aggFromField },
       result: data && total ? { data, total } : null
     });
   }, [size, filterValue, value]);
