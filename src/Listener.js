@@ -53,14 +53,17 @@ export default function ({ children, onChange }) {
           value: () => {
             const msearchData = [];
             resultWidgets.forEach((r, id) => {
-              const { itemsPerPage, page, sort } = r.configuration;
+              const { itemsPerPage, page, sort, requestBody } = r.configuration;
+              const query = {
+                query: queryFrom(queries),
+                size: itemsPerPage,
+                from: (page - 1) * itemsPerPage,
+                sort,
+                ...requestBody
+              };
+
               msearchData.push({
-                query: {
-                  query: queryFrom(queries),
-                  size: itemsPerPage,
-                  from: (page - 1) * itemsPerPage,
-                  sort,
-                },
+                query,
                 data: (result) => result.hits.hits,
                 total: (result) => result.hits.total,
                 id,
@@ -70,9 +73,8 @@ export default function ({ children, onChange }) {
             // Fetch data for internal facet components.
             facetWidgets.forEach((f, id) => {
               const { configuration } = f;
-              const fields = configuration.fields;
-              const aggFromField = configuration.aggFromField;
-
+              const { fields, aggFromField } = configuration;
+              
               // Get the aggs (elasticsearch queries) from fields
               // Dirtiest part, because we build a raw query from various params
               function aggsFromFields() {
